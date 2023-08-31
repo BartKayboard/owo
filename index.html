@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ruleta de Apuesta</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="asd.js">
+  
+  <!-- Estilos CSS -->
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f9f9f9;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: auto;
+      padding-top: 50px;
+    }
+
+   h1 {
+     text-align:center ;
+   }
+   
+   .button-container {
+        display:flex ;
+        justify-content:center ; 
+        margin-top :30px;   
+     } 
+
+     .button{
+       padding:12px ;
+       background-color:#007bff ;
+       color:#fff ;
+       border:none ;
+       border-radius :4px ;    
+     }
+     
+     /* Animación de la ruleta */
+@keyframes rotateAnimation {
+	from { transform: rotate(0deg); }
+	to { transform: rotate(360deg); }
+}
+
+.ruleta-img {
+	animation-name: rotateAnimation;
+	animation-duration:5s; /* Duración de la animación en segundos */
+	animation-timing-function:cubic-bezier(.15,.41,.69,.94);
+	animation-iteration-count: infinite; /* Repetir infinitamente */
+}
+
+/* Estilos adicionales para mostrar el porcentaje de probabilidades y el saldo actual */
+.probability-percentage,
+.current-balance {
+	text-align:right !important;
+	font-size:.8rem !important;
+	margin-right:.5rem !important;
+	margin-bottom:.3rem !important
+}
+</style>
+
+</head>
+
+<body>
+<div class="container">
+
+<!-- Encabezado de la ruleta -->
+<h1>Ruleta de Apuesta</h1>
+
+<!-- Mostrar el saldo actual -->
+<span id='balance' class='current-balance'></span> 
+
+<!-- Ruleta (imagen) -->
+<center><img src="descarga (1).jpeg" alt="Ruleta" class="ruleta-img" height="230"></center>
+
+<!-- Sección para ingresar cantidad a apostar y girar la ruleta -->
+<div class="button-container">
+  <div>
+    Cantidad a apostar:
+    $<input type="number" id="amountInput" min=0 step=0.01 value=0></input>
+    
+    <!-- Mostrar el porcentaje de probabilidades -->
+    <span id='probabilityPercentage' class='probability-percentage'></span>
+  </div>
+
+  <br/>
+  
+  <button id ="spinButton"class = "button">Girar Ruleta</button>
+  
+  <br/>
+  
+  <span id='result'></span> <!-- Mostrar resultado ganador o perdedor -->
+
+</div>  
+
+<br/>
+
+<!-- Sección para dar dinero al jugador -->
+<div class="button-container">
+   Dar dinero:
+   $<input type="number" id="moneyInput" min=0 step=0.01 value=0></input>
+   <button id ="giveMoneyButton"class = "button">Dar Dinero</button>
+</div>
+
+
+</div>
+
+<!-- Scripts JS -->
+<script>
+const spinButton = document.getElementById('spinButton');
+const resultSpan = document.getElementById('result');
+const giveMoneyButton = document.getElementById('giveMoneyButton');
+
+let balance;
+let winProbabilityPercentage;
+let loseProbabilityPercentage;
+
+// Verificar si ya existe un saldo guardado en el almacenamiento local
+if(localStorage.getItem("saldo")){
+  // Cargar el saldo guardado
+  balance = parseFloat(localStorage.getItem("saldo"));
+} else {
+	// Establecer un nuevo saldo inicial de $100 y guardarlo en el almacenamiento local
+	balance = 100;
+	localStorage.setItem("saldo", balance.toString());
+	showMessage("El casino te ha proporcionado $100 para que sigas jugando.");
+}
+
+// Actualizar el saldo actual en la página
+document.getElementById('balance').textContent=`Saldo actual: $${balance.toFixed(2)}`;
+
+updateProbabilities();
+
+spinButton.addEventListener('click', () => {
+  spinWheel();
+});
+
+giveMoneyButton.addEventListener('click', () => {
+   giveMoney();
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    spinWheel();
+  }
+});
+
+function spinWheel() {
+	const amountInput = document.getElementById('amountInput');
+	const betAmount = parseFloat(amountInput.value);
+
+	if (betAmount > 0 && betAmount <= balance) {
+		// Lógica para determinar si ganó o perdió
+		const randomNum = Math.random();
+
+		if (randomNum < 0.5) { // Probabilidad de perder del 50%
+			balance -= betAmount;
+			resultSpan.textContent = `Perdiste $${betAmount.toFixed(2)}.`;
+            loseProbabilityPercentage += getRandomNumberBetween(1, 10);
+            winProbabilityPercentage -= getRandomNumberBetween(1, 10);
+		} else {
+			balance += betAmount;
+			resultSpan.textContent = `Ganaste $${betAmount.toFixed(2)}!`;
+            loseProbabilityPercentage -= getRandomNumberBetween(1, 10);
+            winProbabilityPercentage += getRandomNumberBetween(1, 10);
+        }
+
+        // Actualizar saldo actual en la página
+        document.getElementById('balance').textContent=`Saldo actual: $${balance.toFixed(2)}`;
+
+        // Guardar el nuevo saldo en el almacenamiento local
+        localStorage.setItem("saldo", balance.toString());
+
+         // Resetear cantidad a apostar y habilitar el botón nuevamente
+         amountInput.value=0; 
+
+         updateProbabilities();
+    } else{
+	   alert("La cantidad a apostar debe ser mayor que cero y no puede exceder tu saldo.");
+    }
+}
+
+function giveMoney() {
+   const moneyInput = document.getElementById('moneyInput');
+   const moneyAmount = parseFloat(moneyInput.value);
+
+   if (moneyAmount > 0) {
+      balance += moneyAmount;
+      document.getElementById('balance').textContent=`Saldo actual: $${balance.toFixed(2)}`;
+      localStorage.setItem("saldo", balance.toString());
+      
+      showMessage(`Se te ha dado un total de $${moneyAmount.toFixed(2)}.`);
+   } else {
+     alert("La cantidad a dar debe ser mayor que cero.");
+   }
+
+}
+
+function updateProbabilities() {
+	winProbabilityPercentage = Math.round((balance / (balance + (100 - balance))) * 100);
+    loseProbabilityPercentage = Math.round(((100 - balance) / (balance + (100 - balance))) * 100);
+
+	document.getElementById('probabilityPercentage').innerHTML =
+	  `<span style="color:green">${winProbabilityPercentage}%</span> | <span style="color:red">${loseProbabilityPercentage}%</span>`;
+}
+
+function getRandomNumberBetween(min, max) {
+	return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function showMessage(message) {
+   const messageElement = document.createElement("p");
+   messageElement.textContent = message;
+   document.querySelector(".container").appendChild(messageElement);
+}
+</script>
+
+</body>
+</html>
